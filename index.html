@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Busca de CEP e Endereço</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #76c7c0, #34a7a0);
+      margin: 0;
+      padding: 20px;
+      color: #fff;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    button {
+      background-color: #34a7a0;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2a8d85;
+    }
+    .results {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      padding: 10px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Consulta de CEP e Endereço</h1>
+  <div class="container">
+    <form id="searchByCepForm">
+      <h2>Buscar dados pela CEP</h2>
+      <div class="form-group">
+        <label for="cep">CEP:</label>
+        <input type="text" id="cep" placeholder="Digite o CEP" required>
+      </div>
+      <button type="submit">Buscar Dados</button>
+      <div id="cepResults" class="results"></div>
+    </form>
+
+    <form id="searchByAddressForm">
+      <h2>Buscar CEP pelo Endereço</h2>
+      <div class="form-group">
+        <label for="uf">Estado:</label>
+        <select id="uf" required>
+          <option value="">Selecione o Estado</option>
+          <option value="SP">SP</option>
+          <option value="RJ">RJ</option>
+          <option value="MG">MG</option>
+          <option value="RS">RS</option>
+          <!-- Adicione mais estados conforme necessário -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="cidade">Cidade:</label>
+        <input type="text" id="cidade" placeholder="Digite a cidade" required>
+      </div>
+      <div class="form-group">
+        <label for="rua">Rua:</label>
+        <input type="text" id="rua" placeholder="Digite a rua" required>
+      </div>
+      <button type="submit">Buscar CEP</button>
+      <div id="addressResults" class="results"></div>
+    </form>
+  </div>
+
+  <script>
+    // Manipulação do formulário de consulta com base no CEP
+    const searchByCepForm = document.getElementById('searchByCepForm');
+    const cepResults = document.getElementById('cepResults');
+
+    searchByCepForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const cep = document.getElementById('cep').value.replace(/\D/g, '');
+      
+      if (cep.length !== 8) {
+        cepResults.innerHTML = `<p style="color: red;">Por favor, insira um CEP válido com 8 dígitos.</p>`;
+        return;
+      }
+
+      fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.erro) {
+            cepResults.innerHTML = `<p style="color: red;">CEP não encontrado!</p>`;
+          } else {
+            cepResults.innerHTML = `
+              <p><strong>CEP:</strong> ${data.cep}</p>
+              <p><strong>Logradouro:</strong> ${data.logradouro}</p>
+              <p><strong>Bairro:</strong> ${data.bairro}</p>
+              <p><strong>Cidade:</strong> ${data.localidade}</p>
+              <p><strong>Estado:</strong> ${data.uf}</p>
+            `;
+          }
+        })
+        .catch(error => {
+          cepResults.innerHTML = `<p style="color: red;">Erro ao buscar os dados. Tente novamente.</p>`;
+          console.error('Erro ao acessar a API:', error);
+        });
+    });
+
+    // Manipulação do formulário de consulta com base no endereço
+    const searchByAddressForm = document.getElementById('searchByAddressForm');
+    const addressResults = document.getElementById('addressResults');
+
+    searchByAddressForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const uf = document.getElementById('uf').value;
+      const cidade = document.getElementById('cidade').value;
+      const rua = document.getElementById('rua').value;
+
+      if (!uf || !cidade || !rua) {
+        addressResults.innerHTML = `<p style="color: red;">Por favor, preencha todos os campos.</p>`;
+        return;
+      }
+
+      fetch(`https://viacep.com.br/ws/${uf}/${cidade}/${rua}/json/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.length === 0) {
+            addressResults.innerHTML = `<p style="color: red;">Nenhum CEP encontrado para o endereço fornecido!</p>`;
+          } else {
+            addressResults.innerHTML = data.map(item => `
+              <p><strong>CEP:</strong> ${item.cep} - ${item.logradouro}</p>
+            `).join('');
+          }
+        })
+        .catch(error => {
+          addressResults.innerHTML = `<p style="color: red;">Erro ao buscar os dados. Tente novamente.</p>`;
+          console.error('Erro ao acessar a API:', error);
+        });
+    });
+  </script>
+</body>
+</html>
